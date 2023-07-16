@@ -1,6 +1,5 @@
 pub mod device;
 
-use crate::device::rotor::Rotor;
 use crate::device::Device;
 use clap::{App, Arg};
 use std::error;
@@ -27,6 +26,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             Arg::with_name("rotor")
                 .short('r')
                 .long("rotor")
+                .value_delimiter(',')
                 .help("rotors for usage (I - VIII)")
                 .default_values(&["I", "II", "III"]),
         )
@@ -34,6 +34,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             Arg::with_name("segments")
                 .short('s')
                 .long("segments")
+                .value_delimiter(',')
                 .help("rotor settings, like: \"ABC\"")
                 .default_value(""),
         )
@@ -46,45 +47,34 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         )
         .get_matches();
 
-    let plug_pairs: String = matches.value_of_t_or_exit("plug-pairs");
-    let reflector: char = matches.value_of_t_or_exit("reflector");
-    let mut rotors: Vec<String> = matches.values_of_t_or_exit("rotor");
-    let segments: String = matches.value_of_t_or_exit("segments");
-    let ring_offsets: String = matches.value_of_t_or_exit("ring-offsets");
+    let plug_pairs = matches
+        .get_one::<String>("plug-pairs")
+        .expect("can not be empty");
+    let reflector = matches
+        .get_one::<String>("reflector")
+        .expect("can not be empty");
+    let rotors: Vec<String> = matches
+        .get_many("rotor")
+        .expect("can not be empty")
+        .cloned()
+        .collect();
+    let segments = matches
+        .get_one::<String>("segments")
+        .expect("can not be empty");
+    let ring_offsets = matches
+        .get_one::<String>("ring-offsets")
+        .expect("can not be empty");
 
     // create device
     let mut device = Device::new();
     device.set_plug_pairs(plug_pairs.as_str())?;
 
-    match reflector.to_ascii_uppercase() {
-        'A' => device.set_reflector(Rotor::reflector_a()),
-        'B' => device.set_reflector(Rotor::reflector_b()),
-        'C' => device.set_reflector(Rotor::reflector_c()),
-        _ => panic!("unknown reflector type: {}", reflector),
+    if reflector.is_empty() == false {
+        device.set_reflector_type(reflector.as_str())?;
     }
 
-    for rotor in rotors.iter_mut() {
-        rotor.make_ascii_uppercase();
-
-        if rotor == "I" {
-            device.add_rotor(Rotor::rotor_i());
-        } else if rotor == "II" {
-            device.add_rotor(Rotor::rotor_ii());
-        } else if rotor == "III" {
-            device.add_rotor(Rotor::rotor_iii());
-        } else if rotor == "IV" {
-            device.add_rotor(Rotor::rotor_iv());
-        } else if rotor == "V" {
-            device.add_rotor(Rotor::rotor_v());
-        } else if rotor == "VI" {
-            device.add_rotor(Rotor::rotor_vi());
-        } else if rotor == "VII" {
-            device.add_rotor(Rotor::rotor_vii());
-        } else if rotor == "VIII" {
-            device.add_rotor(Rotor::rotor_viii());
-        } else {
-            panic!("unknown rotor type: {}", rotor);
-        }
+    for rotor in rotors.iter() {
+        device.add_rotor_type(rotor)?;
     }
 
     if segments.is_empty() == false {

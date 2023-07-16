@@ -1,11 +1,13 @@
 pub mod block;
 pub mod details;
 pub mod plugboard;
+pub mod reflector;
 pub mod rotor;
 
 use crate::device::block::Block;
 use crate::device::details::ALPHABET;
 use crate::device::plugboard::PlugBoard;
+use crate::device::reflector::Reflector;
 use crate::device::rotor::Rotor;
 use std::error;
 use std::fmt;
@@ -39,13 +41,28 @@ impl Device {
     }
 
     // always left
-    pub fn set_reflector(&mut self, rotor: Rotor) {
-        self.block.set_reflector(rotor);
+    pub fn set_reflector(&mut self, reflector: Reflector) {
+        self.block.set_reflector(reflector);
     }
 
     // from left to right
     pub fn add_rotor(&mut self, rotor: Rotor) {
         self.block.add_rotor(rotor);
+    }
+
+    // always left
+    pub fn set_reflector_type(
+        &mut self,
+        reflector_type: &str,
+    ) -> Result<(), Box<dyn error::Error>> {
+        self.block.set_reflector(Reflector::model(reflector_type)?);
+        Ok(())
+    }
+
+    // from left to right
+    pub fn add_rotor_type(&mut self, rotor_type: &str) -> Result<(), Box<dyn error::Error>> {
+        self.block.add_rotor(Rotor::model(rotor_type)?);
+        Ok(())
     }
 
     pub fn segments(self: &Self) -> String {
@@ -102,16 +119,15 @@ impl Device {
 
 #[cfg(test)]
 mod tests {
-    use crate::device::rotor::Rotor;
     use crate::device::Device;
 
     #[test]
     fn crypt() {
         let mut device = Device::new();
-        device.set_reflector(Rotor::reflector_b());
-        device.add_rotor(Rotor::rotor_i());
-        device.add_rotor(Rotor::rotor_ii());
-        device.add_rotor(Rotor::rotor_iii());
+        device.set_reflector_type("B").unwrap();
+        device.add_rotor_type("I").unwrap();
+        device.add_rotor_type("II").unwrap();
+        device.add_rotor_type("III").unwrap();
 
         device.set_plug_pairs("HWKLAO").unwrap();
         device.set_segments("PDU").unwrap();

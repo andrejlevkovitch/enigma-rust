@@ -1,9 +1,10 @@
+use crate::device::reflector::Reflector;
 use crate::device::rotor::Rotor;
 use std::error;
 use std::fmt;
 
 pub struct Block {
-    reflector: Option<Rotor>,
+    reflector: Option<Reflector>,
     rotors: Vec<Rotor>,
 }
 
@@ -36,8 +37,8 @@ impl Block {
         }
     }
 
-    pub fn set_reflector(&mut self, rotor: Rotor) {
-        self.reflector = Some(rotor);
+    pub fn set_reflector(&mut self, reflector: Reflector) {
+        self.reflector = Some(reflector);
     }
 
     pub fn add_rotor(&mut self, rotor: Rotor) {
@@ -155,15 +156,16 @@ impl Block {
 #[cfg(test)]
 mod tests {
     use crate::device::block::Block;
+    use crate::device::reflector::Reflector;
     use crate::device::rotor::Rotor;
 
     #[test]
     fn set_segments() {
         let mut block = Block::new();
-        block.set_reflector(Rotor::reflector_b());
-        block.add_rotor(Rotor::rotor_i());
-        block.add_rotor(Rotor::rotor_ii());
-        block.add_rotor(Rotor::rotor_iii());
+        block.set_reflector(Reflector::model("B").unwrap());
+        block.add_rotor(Rotor::model("I").unwrap());
+        block.add_rotor(Rotor::model("II").unwrap());
+        block.add_rotor(Rotor::model("III").unwrap());
 
         assert_eq!(block.set_segments("BhR").unwrap(), block.segments());
         assert_eq!(block.segments(), "BHR");
@@ -172,10 +174,10 @@ mod tests {
     #[test]
     fn check_segments_failure_too_much_segments() {
         let mut block = Block::new();
-        block.set_reflector(Rotor::reflector_b());
-        block.add_rotor(Rotor::rotor_i());
-        block.add_rotor(Rotor::rotor_ii());
-        block.add_rotor(Rotor::rotor_iii());
+        block.set_reflector(Reflector::model("B").unwrap());
+        block.add_rotor(Rotor::model("I").unwrap());
+        block.add_rotor(Rotor::model("II").unwrap());
+        block.add_rotor(Rotor::model("III").unwrap());
 
         block.set_segments("AAAA").unwrap_err();
     }
@@ -183,10 +185,10 @@ mod tests {
     #[test]
     fn check_segments_failure_invalid_segment() {
         let mut block = Block::new();
-        block.set_reflector(Rotor::reflector_b());
-        block.add_rotor(Rotor::rotor_i());
-        block.add_rotor(Rotor::rotor_ii());
-        block.add_rotor(Rotor::rotor_iii());
+        block.set_reflector(Reflector::model("B").unwrap());
+        block.add_rotor(Rotor::model("I").unwrap());
+        block.add_rotor(Rotor::model("II").unwrap());
+        block.add_rotor(Rotor::model("III").unwrap());
 
         block.set_segments("AA;").unwrap_err();
     }
@@ -194,10 +196,10 @@ mod tests {
     #[test]
     fn double_step() {
         let mut block = Block::new();
-        block.set_reflector(Rotor::reflector_b());
-        block.add_rotor(Rotor::rotor_i());
-        block.add_rotor(Rotor::rotor_ii());
-        block.add_rotor(Rotor::rotor_iii());
+        block.set_reflector(Reflector::model("B").unwrap());
+        block.add_rotor(Rotor::model("I").unwrap());
+        block.add_rotor(Rotor::model("II").unwrap());
+        block.add_rotor(Rotor::model("III").unwrap());
 
         _ = block.set_segments("ADU").unwrap();
         block.advance();
@@ -211,10 +213,10 @@ mod tests {
     #[test]
     fn crypt() {
         let mut block = Block::new();
-        block.set_reflector(Rotor::reflector_b());
-        block.add_rotor(Rotor::rotor_i());
-        block.add_rotor(Rotor::rotor_ii());
-        block.add_rotor(Rotor::rotor_iii());
+        block.set_reflector(Reflector::model("B").unwrap());
+        block.add_rotor(Rotor::model("I").unwrap());
+        block.add_rotor(Rotor::model("II").unwrap());
+        block.add_rotor(Rotor::model("III").unwrap());
 
         _ = block.set_segments("PDU").unwrap();
 

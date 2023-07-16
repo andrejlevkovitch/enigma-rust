@@ -1,3 +1,5 @@
+use crate::device::details::check_notches;
+use crate::device::details::check_ring;
 use crate::device::details::NOTCH_I;
 use crate::device::details::NOTCH_II;
 use crate::device::details::NOTCH_III;
@@ -6,9 +8,6 @@ use crate::device::details::NOTCH_V;
 use crate::device::details::NOTCH_VI;
 use crate::device::details::NOTCH_VII;
 use crate::device::details::NOTCH_VIII;
-use crate::device::details::RING_A;
-use crate::device::details::RING_B;
-use crate::device::details::RING_C;
 use crate::device::details::RING_I;
 use crate::device::details::RING_II;
 use crate::device::details::RING_III;
@@ -37,28 +36,22 @@ pub struct Rotor {
 
 #[derive(Debug, Clone)]
 pub enum RotorError {
-    InvalidRingSize(/*actual*/ usize, /*expected*/ usize),
-    MissedRingSegment(/*missed*/ char),
-    InvalidNotch(/*notch*/ char),
     InvalidSegmentPosition(/*pos*/ char),
     InvalidRingOffset(/*pos*/ char),
+    InvalidRotorType(/*rotor type*/ String),
 }
 
 impl fmt::Display for RotorError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            RotorError::InvalidRingSize(actual, expected) => write!(
-                f,
-                "invalid ring size: {}/{} (actual/expected)",
-                actual, expected
-            ),
-            RotorError::MissedRingSegment(missed) => write!(f, "missed ring segment: {}", missed),
-            RotorError::InvalidNotch(notch) => write!(f, "invalid notch: {}", notch),
             RotorError::InvalidSegmentPosition(pos) => {
                 write!(f, "invalid segment position: {}", pos)
             }
             RotorError::InvalidRingOffset(pos) => {
                 write!(f, "invalid ring offset: {}", pos)
+            }
+            RotorError::InvalidRotorType(type_str) => {
+                write!(f, "invalid rotor type: {}", type_str)
             }
         }
     }
@@ -67,47 +60,11 @@ impl fmt::Display for RotorError {
 impl error::Error for RotorError {}
 
 impl Rotor {
-    fn check_ring(outputs: &String) -> Result<(), RotorError> {
-        if SEGMENTS.len() != outputs.len() {
-            return Err(RotorError::InvalidRingSize(outputs.len(), SEGMENTS.len()));
-        }
-
-        for val in SEGMENTS.chars() {
-            if outputs.contains(val) == false {
-                return Err(RotorError::MissedRingSegment(val));
-            }
-        }
-
-        return Ok(());
-    }
-
-    fn check_notches(notches: &String) -> Result<(), RotorError> {
-        for notch in notches.chars() {
-            if SEGMENTS.contains(notch) == false {
-                return Err(RotorError::InvalidNotch(notch));
-            }
-        }
-
-        return Ok(());
-    }
-
-    pub fn new_static(outputs: &str) -> Result<Self, RotorError> {
-        let s = outputs.to_string().to_ascii_uppercase();
-        Rotor::check_ring(&s)?;
-
-        Ok(Self {
-            ring: s,
-            notches: String::new(),
-            position: 0,
-            ring_offset: 0,
-        })
-    }
-
-    pub fn new(outputs: &str, notches: &str) -> Result<Self, RotorError> {
+    pub fn new(outputs: &str, notches: &str) -> Result<Self, Box<dyn error::Error>> {
         let so = outputs.to_string().to_ascii_uppercase();
         let sn = notches.to_string().to_ascii_uppercase();
-        Rotor::check_ring(&so)?;
-        Rotor::check_notches(&sn)?;
+        check_ring(&so)?;
+        check_notches(&sn)?;
 
         Ok(Self {
             ring: so,
@@ -117,38 +74,28 @@ impl Rotor {
         })
     }
 
-    pub fn rotor_i() -> Self {
-        Self::new(RING_I, NOTCH_I).unwrap()
-    }
-    pub fn rotor_ii() -> Self {
-        Self::new(RING_II, NOTCH_II).unwrap()
-    }
-    pub fn rotor_iii() -> Self {
-        Self::new(RING_III, NOTCH_III).unwrap()
-    }
-    pub fn rotor_iv() -> Self {
-        Self::new(RING_IV, NOTCH_IV).unwrap()
-    }
-    pub fn rotor_v() -> Self {
-        Self::new(RING_V, NOTCH_V).unwrap()
-    }
-    pub fn rotor_vi() -> Self {
-        Self::new(RING_VI, NOTCH_VI).unwrap()
-    }
-    pub fn rotor_vii() -> Self {
-        Self::new(RING_VII, NOTCH_VII).unwrap()
-    }
-    pub fn rotor_viii() -> Self {
-        Self::new(RING_VIII, NOTCH_VIII).unwrap()
-    }
-    pub fn reflector_a() -> Self {
-        Self::new_static(RING_A).unwrap()
-    }
-    pub fn reflector_b() -> Self {
-        Self::new_static(RING_B).unwrap()
-    }
-    pub fn reflector_c() -> Self {
-        Self::new_static(RING_C).unwrap()
+    pub fn model(s: &str) -> Result<Self, Box<dyn error::Error>> {
+        let val = s.to_uppercase();
+
+        if val == "I" {
+            Self::new(RING_I, NOTCH_I)
+        } else if val == "II" {
+            Self::new(RING_II, NOTCH_II)
+        } else if val == "III" {
+            Self::new(RING_III, NOTCH_III)
+        } else if val == "IV" {
+            Self::new(RING_IV, NOTCH_IV)
+        } else if val == "V" {
+            Self::new(RING_V, NOTCH_V)
+        } else if val == "VI" {
+            Self::new(RING_VI, NOTCH_VI)
+        } else if val == "VII" {
+            Self::new(RING_VII, NOTCH_VII)
+        } else if val == "VIII" {
+            Self::new(RING_VIII, NOTCH_VIII)
+        } else {
+            Err(RotorError::InvalidRotorType(val).into())
+        }
     }
 
     pub fn segment(self: &Self) -> char {
@@ -267,27 +214,20 @@ mod tests {
     use crate::device::rotor::SEGMENTS;
 
     #[test]
-    fn new_reflector() {
-        Rotor::reflector_a();
-        Rotor::reflector_b();
-        Rotor::reflector_c();
-    }
-
-    #[test]
     fn new_rotors() {
-        Rotor::rotor_i();
-        Rotor::rotor_ii();
-        Rotor::rotor_iii();
-        Rotor::rotor_iv();
-        Rotor::rotor_v();
-        Rotor::rotor_vi();
-        Rotor::rotor_vii();
-        Rotor::rotor_viii();
+        Rotor::model("I").unwrap();
+        Rotor::model("II").unwrap();
+        Rotor::model("III").unwrap();
+        Rotor::model("IV").unwrap();
+        Rotor::model("V").unwrap();
+        Rotor::model("VI").unwrap();
+        Rotor::model("VII").unwrap();
+        Rotor::model("VIII").unwrap();
     }
 
     #[test]
     fn set_active_segment() {
-        let mut rotor = Rotor::rotor_i();
+        let mut rotor = Rotor::model("I").unwrap();
         assert!(rotor.segment() == 'A');
         assert!(rotor.set_segment('B').unwrap() == 'B');
         assert!(rotor.set_segment('b').unwrap() == 'B');
@@ -296,35 +236,35 @@ mod tests {
 
     #[test]
     fn check_active_segment_failure() {
-        Rotor::rotor_i().set_segment(',').unwrap_err();
+        Rotor::model("I").unwrap().set_segment(',').unwrap_err();
     }
 
     #[test]
     fn set_ring_offset() {
         for offset in SEGMENTS.chars() {
-            assert_eq!(Rotor::rotor_i().set_ring_offset(offset).unwrap(), offset);
+            assert_eq!(
+                Rotor::model("I").unwrap().set_ring_offset(offset).unwrap(),
+                offset
+            );
         }
     }
 
     #[test]
     fn check_ring_offset_failure() {
-        Rotor::rotor_i().set_ring_offset(':').unwrap_err();
+        Rotor::model("I").unwrap().set_ring_offset(':').unwrap_err();
     }
 
     #[test]
     fn encryption() {
         let rotors = vec![
-            Rotor::rotor_i(),
-            Rotor::rotor_ii(),
-            Rotor::rotor_iii(),
-            Rotor::rotor_iv(),
-            Rotor::rotor_v(),
-            Rotor::rotor_vi(),
-            Rotor::rotor_vii(),
-            Rotor::rotor_viii(),
-            Rotor::reflector_a(),
-            Rotor::reflector_b(),
-            Rotor::reflector_c(),
+            Rotor::model("I").unwrap(),
+            Rotor::model("II").unwrap(),
+            Rotor::model("III").unwrap(),
+            Rotor::model("IV").unwrap(),
+            Rotor::model("V").unwrap(),
+            Rotor::model("VI").unwrap(),
+            Rotor::model("VII").unwrap(),
+            Rotor::model("VIII").unwrap(),
         ];
 
         for mut rotor in rotors {
@@ -348,30 +288,30 @@ mod tests {
 
     #[test]
     fn check_encryption_failure() {
-        Rotor::rotor_i().forward('.').unwrap_err();
+        Rotor::model("I").unwrap().forward('.').unwrap_err();
     }
 
     #[test]
     fn position_and_offset_are_equivalents() {
         let mut rotors = vec![
-            Rotor::rotor_i(),
-            Rotor::rotor_ii(),
-            Rotor::rotor_iii(),
-            Rotor::rotor_iv(),
-            Rotor::rotor_v(),
-            Rotor::rotor_vi(),
-            Rotor::rotor_vii(),
-            Rotor::rotor_viii(),
+            Rotor::model("I").unwrap(),
+            Rotor::model("II").unwrap(),
+            Rotor::model("III").unwrap(),
+            Rotor::model("IV").unwrap(),
+            Rotor::model("V").unwrap(),
+            Rotor::model("VI").unwrap(),
+            Rotor::model("VII").unwrap(),
+            Rotor::model("VIII").unwrap(),
         ];
         let mut controls = vec![
-            Rotor::rotor_i(),
-            Rotor::rotor_ii(),
-            Rotor::rotor_iii(),
-            Rotor::rotor_iv(),
-            Rotor::rotor_v(),
-            Rotor::rotor_vi(),
-            Rotor::rotor_vii(),
-            Rotor::rotor_viii(),
+            Rotor::model("I").unwrap(),
+            Rotor::model("II").unwrap(),
+            Rotor::model("III").unwrap(),
+            Rotor::model("IV").unwrap(),
+            Rotor::model("V").unwrap(),
+            Rotor::model("VI").unwrap(),
+            Rotor::model("VII").unwrap(),
+            Rotor::model("VIII").unwrap(),
         ];
 
         assert_eq!(controls.len(), rotors.len());
