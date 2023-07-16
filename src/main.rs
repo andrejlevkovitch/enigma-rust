@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             Arg::with_name("plug-pairs")
                 .short('p')
                 .long("plug-pairs")
-                .help("plug pairs")
+                .help("plug pairs, like \"ABCD\"")
                 .default_value(""),
         )
         .arg(
@@ -34,14 +34,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             Arg::with_name("segments")
                 .short('s')
                 .long("segments")
-                .help("rotor settings")
+                .help("rotor settings, like: \"ABC\"")
                 .default_value(""),
         )
         .arg(
             Arg::with_name("ring-offsets")
                 .short('o')
                 .long("ring-offsets")
-                .help("ring offsets")
+                .help("ring offsets, like \"ABC\"")
                 .default_value(""),
         )
         .get_matches();
